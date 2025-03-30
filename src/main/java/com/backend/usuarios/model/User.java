@@ -13,21 +13,29 @@ import java.util.Collections;
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-    @SequenceGenerator(name = "user_seq", sequenceName = "USER_SEQ", allocationSize = 1)
-    private Long id;
+    @Column(length = 12, unique = true, nullable = false)
+    private String rut; // Usamos el RUT como identificador principal
 
+    @Column(nullable = false, unique = true, length = 50)
     private String username;
+
+    @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
     private String role;
 
+    @Column(nullable = false, unique = true, length = 100)
+    private String email;
+
     // Getters y Setters
-    public Long getId() {
-        return id;
+
+    public String getRut() {
+        return rut;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setRut(String rut) {
+        this.rut = rut;
     }
 
     @Override
@@ -56,6 +64,14 @@ public class User implements UserDetails {
         this.role = role;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     // Métodos requeridos por UserDetails
 
     @Override
@@ -65,21 +81,21 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true; // cambiar si vas a manejar expiración
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true; // cambiar si vas a manejar bloqueo
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true; // cambiar si vas a manejar expiración de credenciales
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return true; // cambiar si vas a manejar habilitación
+        return true;
     }
 }

@@ -35,16 +35,18 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    // Buscar usuario por ID
-    public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+    // Buscar usuario por RUT
+    public Optional<User> getUserByRut(String rut) {
+        return userRepository.findById(rut); // Porque rut es la clave primaria (@Id)
     }
 
     // Actualizar usuario
-    public Optional<User> updateUser(Long id, User updatedUser) {
-        return userRepository.findById(id).map(existingUser -> {
+    public Optional<User> updateUser(String rut, User updatedUser) {
+        return userRepository.findById(rut).map(existingUser -> {
             existingUser.setUsername(updatedUser.getUsername());
             existingUser.setRole(updatedUser.getRole());
+            existingUser.setEmail(updatedUser.getEmail());
+
             if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
                 existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
             }
@@ -53,8 +55,8 @@ public class UserService {
     }
 
     // Eliminar usuario
-    public boolean deleteUser(Long id) {
-        return userRepository.findById(id).map(user -> {
+    public boolean deleteUser(String rut) {
+        return userRepository.findById(rut).map(user -> {
             userRepository.delete(user);
             return true;
         }).orElse(false);
