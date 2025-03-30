@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -17,10 +20,37 @@ public class UserController {
     private UserService userService;
 
     // Registrar nuevo usuario
+    //@PostMapping("/register")
+    //public ResponseEntity<User> registerUser(@RequestBody User user) {
+    //    User newUser = userService.registerUser(user);
+    //    return ResponseEntity.ok(newUser);
+    //}
+
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
-        User newUser = userService.registerUser(user);
-        return ResponseEntity.ok(newUser);
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        String rut = user.getRut(); // asegúrate de que el modelo User tenga este campo
+
+        // URL de tu función en Azure
+        String azureFunctionUrl = "https://funcionduocrut.azurewebsites.net/api/validateRut?rut=" + rut;
+
+        // Usar RestTemplate para validar RUT
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+            ResponseEntity<String> response = restTemplate.getForEntity(azureFunctionUrl, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                // RUT válido → continúa con registro
+                User newUser = userService.registerUser(user);
+                return ResponseEntity.ok(newUser);
+            } else {
+                // RUT inválido
+                return ResponseEntity.badRequest().body("RUT inválido");
+            }
+
+        } catch (Exception e) {
+            // Fallo al contactar Azure Function
+            return ResponseEntity.status(500).body("Error al validar el RUT: " + e.getMessage());
+        }
     }
 
     // Login
