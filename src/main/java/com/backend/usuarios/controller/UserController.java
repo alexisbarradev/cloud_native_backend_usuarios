@@ -1,12 +1,9 @@
 package com.backend.usuarios.controller;
 
-import com.backend.usuarios.dto.LoginRequest;
 import com.backend.usuarios.model.User;
 import com.backend.usuarios.service.UserService;
-import com.backend.usuarios.util.JwtUtil;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,60 +16,54 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    // Registro de usuario
+    // Registrar nuevo usuario
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) {
-        return ResponseEntity.ok(userService.registerUser(user));
+    public ResponseEntity<User> registerUser(@RequestBody User user) {
+        User newUser = userService.registerUser(user);
+        return ResponseEntity.ok(newUser);
     }
 
-    // Login de usuario
+    // Login
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest) {
-        Optional<User> user = userService.authenticate(
-            loginRequest.getUsername(), loginRequest.getPassword());
-
-        if (user.isPresent()) {
-            String token = jwtUtil.generateToken(user.get());
-            return ResponseEntity.ok(token);
+    public ResponseEntity<String> login(@RequestParam String username, @RequestParam String password) {
+        Optional<User> userOpt = userService.authenticate(username, password);
+        if (userOpt.isPresent()) {
+            return ResponseEntity.ok("Login exitoso");
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
+            return ResponseEntity.status(401).body("Credenciales inválidas");
         }
     }
 
-    // Obtener todos los usuarios
+    // Listar todos los usuarios
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // Obtener usuario por ID
-    @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        Optional<User> user = userService.getUserById(id);
-        return user.map(ResponseEntity::ok)
-                   .orElseGet(() -> ResponseEntity.notFound().build());
+    // Buscar usuario por RUT
+    @GetMapping("/{rut}")
+    public ResponseEntity<User> getUserByRut(@PathVariable String rut) {
+        return userService.getUserByRut(rut)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Actualizar usuario
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User updatedUser) {
-        Optional<User> user = userService.updateUser(id, updatedUser);
-        return user.map(ResponseEntity::ok)
-                   .orElseGet(() -> ResponseEntity.notFound().build());
+    // Actualizar usuario por RUT
+    @PutMapping("/{rut}")
+    public ResponseEntity<User> updateUser(@PathVariable String rut, @RequestBody User updatedUser) {
+        return userService.updateUser(rut, updatedUser)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Eliminar usuario
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        boolean deleted = userService.deleteUser(id);
+    // Eliminar usuario por RUT
+    @DeleteMapping("/{rut}")
+    public ResponseEntity<String> deleteUser(@PathVariable String rut) {
+        boolean deleted = userService.deleteUser(rut);
         if (deleted) {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok("Usuario eliminado");
         } else {
             return ResponseEntity.notFound().build();
         }
     }
 }
-
