@@ -14,7 +14,7 @@ public class User implements UserDetails {
 
     @Id
     @Column(length = 12, unique = true, nullable = false)
-    private String rut; // Usamos el RUT como identificador principal
+    private String rut;
 
     @Column(nullable = false, unique = true, length = 50)
     private String username;
@@ -22,8 +22,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String role;
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "role_id", nullable = true)
+    private Role role;
 
     @Column(nullable = false, unique = true, length = 100)
     private String email;
@@ -56,11 +57,11 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(Role role) {
         this.role = role;
     }
 
@@ -76,7 +77,10 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+        if (role == null || role.getName() == null) {
+            return Collections.emptyList();
+        }
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.getName()));
     }
 
     @Override
