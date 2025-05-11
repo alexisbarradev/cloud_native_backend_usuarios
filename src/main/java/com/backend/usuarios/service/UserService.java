@@ -1,6 +1,8 @@
 package com.backend.usuarios.service;
 
+import com.backend.usuarios.model.Role;
 import com.backend.usuarios.model.User;
+import com.backend.usuarios.repository.RoleRepository;
 import com.backend.usuarios.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,10 +18,20 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     // Registrar usuario
     public User registerUser(User user) {
+        // Asignar automáticamente el rol "USER" si no viene definido
+        if (user.getRole() == null) {
+            Role defaultRole = roleRepository.findByName("USER")
+                    .orElseThrow(() -> new RuntimeException("Rol 'USER' no existe en la base de datos"));
+            user.setRole(defaultRole);
+        }
+
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
@@ -37,7 +49,7 @@ public class UserService {
 
     // Buscar usuario por RUT
     public Optional<User> getUserByRut(String rut) {
-        return userRepository.findById(rut); // Porque rut es la clave primaria (@Id)
+        return userRepository.findById(rut);
     }
 
     // Actualizar usuario

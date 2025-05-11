@@ -1,6 +1,8 @@
 package com.backend.usuarios.controller;
 
+import com.backend.usuarios.model.Role;
 import com.backend.usuarios.model.User;
+import com.backend.usuarios.repository.RoleRepository;
 import com.backend.usuarios.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -17,30 +19,41 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private RoleRepository roleRepository; // ✅ Nuevo: Repositorio de roles
+
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        String rut = user.getRut();
-        String azureFunctionUrl = "https://funcionduocrut.azurewebsites.net/api/validateRut?rut=" + rut;
-        RestTemplate restTemplate = new RestTemplate();
+public ResponseEntity<?> registerUser(@RequestBody User user) {
+    String rut = user.getRut();
+    String azureFunctionUrl = "https://funcionduocrut.azurewebsites.net/api/validateRut?rut=" + rut;
+    RestTemplate restTemplate = new RestTemplate();
 
-        try {
-            ResponseEntity<String> response = restTemplate.getForEntity(azureFunctionUrl, String.class);
+    try {
+        ResponseEntity<String> response = restTemplate.getForEntity(azureFunctionUrl, String.class);
 
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                return ResponseEntity.badRequest().body("RUT inválido");
-            }
-
-            User newUser = userService.registerUser(user);
-
-            // Evento: UserCreated
-            sendEventToEventGrid("UserCreated", "usuarios/creado", newUser);
-
-            return ResponseEntity.ok(newUser);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error al registrar o enviar evento: " + e.getMessage());
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            return ResponseEntity.badRequest().body("RUT inválido");
         }
+
+        // ✅ Si el rol viene vacío o sin nombre, asignamos "USER"
+        if (user.getRole() == null || user.getRole().getName() == null) {
+            Optional<Role> defaultRole = roleRepository.findByName("USER");
+            if (defaultRole.isEmpty()) {
+                return ResponseEntity.status(500).body("No se encontró el rol USER en la base de datos.");
+            }
+            user.setRole(defaultRole.get());
+        }
+
+        User newUser = userService.registerUser(user);
+        sendEventToEventGrid("UserCreated", "usuarios/creado", newUser);
+
+        return ResponseEntity.ok(newUser);
+
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error al registrar o enviar evento: " + e.getMessage());
     }
+}
+
 
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestParam String username, @RequestParam String password) {
@@ -71,7 +84,6 @@ public class UserController {
         }
 
         try {
-            // Evento: UserUpdated
             sendEventToEventGrid("UserUpdated", "usuarios/actualizado", updated.get());
         } catch (Exception e) {
             System.err.println("Error al enviar evento de actualización: " + e.getMessage());
@@ -91,7 +103,6 @@ public class UserController {
         boolean deleted = userService.deleteUser(rut);
         if (deleted) {
             try {
-                // Evento: UserDeleted
                 sendEventToEventGrid("UserDeleted", "usuarios/eliminado", userOpt.get());
             } catch (Exception e) {
                 System.err.println("Error al enviar evento de eliminación: " + e.getMessage());
